@@ -1,0 +1,17 @@
+int p = balloc(16);
+int q = balloc(16);
+putint(p);
+putstr("\n");
+putint(q);
+putstr("\n");
+putint(q - p);
+putstr("\n");
+p[0] = 111;
+p[1] = 222;
+q[0] = 333;
+putint(p[0]);
+putstr("\n");
+putint(p[1]);
+putstr("\n");
+putint(q[0]);
+putstr("\n");
