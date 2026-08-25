@@ -1,6 +1,6 @@
 # Simplex
 
-Simplex is a compiled systems language for AArch64 Linux, without stdlib, linker, or runtime. The compiler reads source code and writes a self contained ELF64 executable directly, it targets AArch64 and produces correct position dependent executables with no external dependencies at any stage. The end goal is for the compiler to compile a complete, reproducible version of itself, not only as a demonstration of cleverness but as a proof that the language and its code generator are correct, expressive, and complete enough to be trusted as a system tool. Self compilation is the only test that cannot be faked.
+Simplex is a compiled systems language for AArch64 Linux, without stdlib, linker, or runtime. The compiler reads source code and spits out a self contained ELF64 executable directly, it targets AArch64 and produces correct position dependent executables with no external dependencies at any stage. The end goal is for the compiler to compile a complete, reproducible version of itself, not only as a demonstration of cleverness but as a proof that the language and its code generator are correct, expressive, and complete enough to be trusted as a system tool. Self compilation is the only test that cannot be faked.
 
 ## The language
 
