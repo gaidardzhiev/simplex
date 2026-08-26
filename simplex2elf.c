@@ -1225,11 +1225,24 @@ static Val var_lval(Cg2 *g, const char *nm, Lenv *env) {
  * parameters are then registered in the local environment as positive fp offsets */
 static void emit_fn_entry(Cg2 *g, Lenv *env, char **params, int *parptrs, int npar) {
 	int i;
-	a64_stp_fp_lr(g);
-	a64_add_imm(g, 29, 31, 0);
+	a64_stp_fp_lr(g); /* STP X29,X30,[SP,#-16]! */
+	a64_add_imm(g, 29, 31, 0); /* MOV X29, SP */
+	/* allocate param home area BELOW X29 before spilling
+	 * the old code used positive offsets [X29+16, X29+32, ...], putting params
+	 * ABOVE X29 in the caller's dead zone that is safe as long as no nested
+	 * call touches those addresses, but the callee's own emit_fn_entry always
+	 * spills its first param to [X29_callee+16] = [SP_at_BL], which is exactly
+	 * [SP_caller - 16] = the first slot the expression evaluator pushes into
+	 * the result: every recursive call clobbers the caller's saved left operand
+	 * of a binary expression, so e.g. n * fact(n-1) reads n-1 instead of n
+	 * fix: reserve the param area with an explicit SUB first, then spill with
+	 * STUR at negative offsets from X29 SP is now already below all params
+	 * before any expression eval push occurs, so no callee can reach them */
+	if (npar > 0)
+		a64_sub_imm(g, 31, 31, (uint32_t)(npar * SLOT_SZ));
 	for (i = 0; i < npar; i++) {
-		int off = PARAM_BASE + i * SLOT_SZ;
-		a64_str_w(g, i, 29, off); 
+		int off = -(i + 1) * SLOT_SZ; /* negative: below X29 */
+		a64_stur_w(g, i, 29, off);
 		lenv_add(env, params[i], off, parptrs ? parptrs[i] : 0);
 	}
 }
