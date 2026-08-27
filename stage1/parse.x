@@ -407,6 +407,7 @@ int pprim(int l) {
 			lx_advance(l);
 			n = nd_new(ND_CALL);
 			nd_set_str(n, tok_str(t));
+			nd_set_slen(n, tok_len(t));
 			if (lcheck(l, TK_RPAREN) == 0) {
 				nd_add_ch(n, pexpr(l));
 				while (lmatch(l, TK_COMMA)) {
@@ -418,6 +419,7 @@ int pprim(int l) {
 		}
 		n = nd_new(ND_ID);
 		nd_set_str(n, tok_str(t));
+		nd_set_slen(n, tok_len(t));
 		return n;
 	}
 	if (tt == TK_LPAREN) {
@@ -577,6 +579,7 @@ int pexpr(int l) {
 		if (nt == ND_ID) {
 			r = nd_new(ND_ASSIGN);
 			nd_set_str(r, nd_str(n));
+			nd_set_slen(r, nd_slen(n));
 			nd_set_a(r, pexpr(l));
 			return r;
 		}
@@ -617,6 +620,7 @@ int pstmt(int l) {
 		lexpect(l, TK_ASSIGN);
 		n = nd_new(ND_DECL);
 		nd_set_str(n, tok_str(nm));
+		nd_set_slen(n, tok_len(nm));
 		nd_set_ptr(n, isptr);
 		nd_set_a(n, pexpr(l));
 		lexpect(l, TK_SEMI);
@@ -678,6 +682,7 @@ int ptoplevel(int l) {
 			lx_advance(l);
 			n = nd_new(ND_FN);
 			nd_set_str(n, tok_str(nm));
+			nd_set_slen(n, tok_len(nm));
 			nd_set_ptr(n, isptr);
 			if (lcheck(l, TK_RPAREN) == 0) {
 				lexpect(l, TK_INT);
@@ -700,6 +705,7 @@ int ptoplevel(int l) {
 		lexpect(l, TK_ASSIGN);
 		n = nd_new(ND_DECL);
 		nd_set_str(n, tok_str(nm));
+		nd_set_slen(n, tok_len(nm));
 		nd_set_ptr(n, isptr);
 		nd_set_a(n, pexpr(l));
 		lexpect(l, TK_SEMI);
@@ -742,6 +748,21 @@ int nd_type_name(int t) {
 	return "?";
 }
 
+int putstrn(int s, int n) {
+	int i = 0;
+	int c = 0;
+	int buf = balloc(2);
+	int *p = buf;
+	p[0] = 0;
+	while (i < n) {
+		c = bload(s, i);
+		p[0] = c;
+		putstr(buf);
+		i = i + 1;
+	}
+	return 0;
+}
+
 int dump(int n, int depth) {
 	int i = 0;
 	int d = 0;
@@ -753,11 +774,11 @@ int dump(int n, int depth) {
 	t = nd_type(n);
 	putstr(nd_type_name(t));
 	if (t == ND_NUM)  { putstr(" "); putint(nd_num(n)); }
-	if (t == ND_ID)   { putstr(" "); putstr(nd_str(n)); }
-	if (t == ND_DECL) { putstr(" "); putstr(nd_str(n)); }
-	if (t == ND_FN)   { putstr(" "); putstr(nd_str(n)); }
-	if (t == ND_CALL) { putstr(" "); putstr(nd_str(n)); }
-	if (t == ND_ASSIGN) { putstr(" "); putstr(nd_str(n)); }
+	if (t == ND_ID)   { putstr(" "); putstrn(nd_str(n), nd_slen(n)); }
+	if (t == ND_DECL) { putstr(" "); putstrn(nd_str(n), nd_slen(n)); }
+	if (t == ND_FN)   { putstr(" "); putstrn(nd_str(n), nd_slen(n)); }
+	if (t == ND_CALL) { putstr(" "); putstrn(nd_str(n), nd_slen(n)); }
+	if (t == ND_ASSIGN) { putstr(" "); putstrn(nd_str(n), nd_slen(n)); }
 	putstr("\n");
 	dump(nd_a(n), depth + 1);
 	dump(nd_b(n), depth + 1);
