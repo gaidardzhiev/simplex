@@ -179,54 +179,26 @@ fty() {
 	captured=$(stage1/parse.out)
 	expected="!!! AST !!!
 PROG
-  FN fact(int n) { if (n == 0) { return 1; } return n * fact(n - 1); }
-putint(fact(10));
-putstr(\"
-\");
-
+  FN fact
     BLOCK
       IF
         BIN
-          ID n == 0) { return 1; } return n * fact(n - 1); }
-putint(fact(10));
-putstr(\"
-\");
-
+          ID n
           NUM 0
         BLOCK
           RETURN
             NUM 1
       RETURN
         BIN
-          ID n * fact(n - 1); }
-putint(fact(10));
-putstr(\"
-\");
-
-          CALL fact(n - 1); }
-putint(fact(10));
-putstr(\"
-\");
-
+          ID n
+          CALL fact
             BIN
-              ID n - 1); }
-putint(fact(10));
-putstr(\"
-\");
-
+              ID n
               NUM 1
-  CALL putint(fact(10));
-putstr(\"
-\");
-
-    CALL fact(10));
-putstr(\"
-\");
-
+  CALL putint
+    CALL fact
       NUM 10
-  CALL putstr(\"
-\");
-
+  CALL putstr
     STR"
 	[ "${captured}" = "${expected}" ] && {
 		fprint "Stage1 Parse" "${expected}" "${captured}" "\n${G}PASSED${N}\n"
