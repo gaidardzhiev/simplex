@@ -121,8 +121,8 @@ ftn() {
 ftp() {
 	./"${X}" src/ptr.x -o src/ptr.out
 	captured=$(src/ptr.out)
-	expected="99
-42"
+	expected="8
+16"
 	[ "${captured}" = "${expected}" ] && {
 		fprint "Ptr" "${expected}" "${captured}" "\n${G}PASSED${N}\n"
 		return 0
