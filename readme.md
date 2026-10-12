@@ -46,7 +46,7 @@ src/hello.out
 Hello from the Simplex World!
 ```
 
-Keywords: `int`, `if`, `else`, `while`, `return`. Everything else is a function call or an operator. `putint`, `putstr`, `getc`, `bload`, `bstore`, and `balloc` are built in intrinsics. There is no standard library. There is no preprocessor. There is no separate compilation.
+Keywords: `int`, `if`, `else`, `while`, `return`. Everything else is a function call or an operator. `putint`, `putstr`, `getc`, `bload`, `bstore`, and `balloc` are built in intrinsics.
 
 Operators: `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`, unary `-`, `&` (address-of), `*` (dereference), `[]` (index).
 
