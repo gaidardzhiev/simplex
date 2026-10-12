@@ -34,7 +34,7 @@ make
 /usr/bin/musl-gcc -o simplex2elf simplex2elf.c -static -no-pie -g -Wall -Wextra
 ```
 
-Compile [hello.x](src/hello.x) to `fact.out`:
+Compile [hello.x](src/hello.x) to `hello.out`:
 ```sh
 ./simplex2elf src/hello.x -o hello.out
 wrote AArch64 ELF64 to src/hello.out (4127 bytes, entry 0x4001d0)
