@@ -1,0 +1,10 @@
+int x = 5;
+int y = 0;
+putint(!x); putint(!y); putint(!!x); putint(!(x == 5)); putint(!0); putint(!1);
+putstr("\n");
+y = -x;
+putint(y + 10);
+putint(-(-x));
+putint(-x + x);
+putint(5 + -2);
+putstr("\n");

@@ -1,0 +1,11 @@
+int a = 4294967295;
+int b = 65536;
+int c = 65535;
+int d = 1000000;
+int e = 0;
+int f = 2147483648;
+int g = 305419896;
+putint(a); putstr(" "); putint(b); putstr(" "); putint(c); putstr(" ");
+putint(d); putstr(" "); putint(e); putstr(" "); putint(f); putstr(" "); putint(g); putstr("\n");
+putint(4294967295 - 4294967290); putstr(" "); putint(1 * 4096 * 1024); putstr(" ");
+putint(65536 + 1); putstr(" "); putint(65535 + 1); putstr("\n");

@@ -334,7 +334,6 @@ int ND_RETURN     = 16;
 int ND_PROG       = 17;
 
 int ND_SZ   = 232;
-int MAX_CH  = 16;
 int MAX_PAR = 16;
 
 int nd_new(int t) {
@@ -353,7 +352,7 @@ int nd_a(int n)    { int *p = n; return p[5]; }
 int nd_b(int n)    { int *p = n; return p[6]; }
 int nd_c(int n)    { int *p = n; return p[7]; }
 int nd_nch(int n)  { int *p = n; return p[8]; }
-int nd_ch(int n, int i) { int *p = n; return p[9 + i]; }
+int nd_ch(int n, int i) { int *p = n; int *a = p[9]; return a[i]; }
 int nd_npar(int n) { int *p = n; return p[25]; }
 int nd_par_str(int n, int i) { int *p = n; return p[26 + i]; }
 int nd_par_ptr(int n, int i) { int *p = n; return p[42 + i]; }
@@ -368,9 +367,24 @@ int nd_set_c(int n, int v)    { int *p = n; p[7] = v; return 0; }
 
 int nd_add_ch(int n, int ch) {
 	int *p = n;
-	int i = p[8];
-	p[9 + i] = ch;
-	p[8] = i + 1;
+	int cnt = p[8];
+	int cap = p[10];
+	int *old = p[9];
+	int *new = 0;
+	int i = 0;
+	if (cnt == cap) {
+		cap = cap * 2 + 4;
+		new = balloc(cap * 4);
+		while (i < cnt) {
+			new[i] = old[i];
+			i = i + 1;
+		}
+		p[9] = new;
+		p[10] = cap;
+	}
+	new = p[9];
+	new[cnt] = ch;
+	p[8] = cnt + 1;
 	return 0;
 }
 

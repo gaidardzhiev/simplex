@@ -20,4 +20,7 @@ install:
 	cp $(BIN) /usr/local/bin/$(BIN)
 
 clean:
-	rm -f $(BIN) src/*.out stage1/*.out
+	rm -f $(BIN) src/*.out stage1/*.out stage*.out ref.out x.out
+
+selfhost: $(BIN)
+	./selfhost.sh

@@ -699,14 +699,14 @@ Nd *parse(Lx *l) {
 #define ROD_BASE 0x500000u /* read-only data: string literals */
 #define BSS_BASE 0x600000u /* zero-initialized: globals + heap */
 #define BSS_SCRATCH 32u /* scratch bytes reserved at the top of bss */
-#define HEAP_SZ 65536u /* 64 kb bump-allocator arena */
+#define HEAP_SZ 67108864u /* 64 mb bump-allocator arena */
 #define MAX_GLBS 1024 /* maximum number of global variables */
 #define BSS_SZ (MAX_GLBS * 4u + BSS_SCRATCH + 4u + HEAP_SZ) /* total bss size in bytes */
 #define HEAP_BASE (BSS_BASE + MAX_GLBS * 4u + BSS_SCRATCH) /* first heap byte */
 #define BUMP_PTR (HEAP_BASE) /* the bump pointer itself lives at this address */
 #define MAX_LOCALS 256 /* max locals per function */
-#define MAX_FNS 256 /* max functions per program */
-#define MAX_FPATCHES 4096 /* max forward call sites to backpatch */
+#define MAX_FNS 1024 /* max functions per program */
+#define MAX_FPATCHES 32768 /* max forward call sites to backpatch */
 #define PARAM_BASE 16 /* byte offset from x29 to first spilled param */
 #define SLOT_SZ 16 /* every local slot is 16 bytes to keep sp 16-byte aligned */
 

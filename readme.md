@@ -1,6 +1,6 @@
 # Simplex
 
-Simplex is a compiled systems language for AArch64 Linux. Its compiler reads source code and spits out self contained ELF64 executables directly. The output is correct, position dependent executables for AArch64, and no external dependencies are needed at any stage. The end goal is for the compiler to compile a complete, reproducible version of itself, not only as a demonstration of cleverness but as a proof that the language and its code generator are correct, expressive, and complete enough to be trusted as a system tool. Self compilation is the only test that cannot be faked.
+Simplex is a compiled systems language for AArch64 Linux. Its compiler reads source code and spits out self contained ELF64 executables directly. The output is correct, position dependent executables for AArch64, and no external dependencies are needed at any stage. The compiler compiles a complete, reproducible version of itself, not only as a demonstration of cleverness but as a proof that the language and its code generator are correct, expressive, and complete enough to be trusted as a system tool. Self compilation is the only test that cannot be faked.
 
 ## The language
 
@@ -63,7 +63,7 @@ Byte and heap operations:
 
 ```c
 bload(p, i)      /* load byte at p[i] */
-bstore(p, i, v)  /* store byte v at p[i] */
+bstore(v, p, i)  /* store byte v at p[i] */
 balloc(n)        /* bump allocate n bytes, returns pointer, arena lifetime */
 ```
 
@@ -85,17 +85,54 @@ Syscall ABI (Linux AArch64): number in `X8`, arguments in `X0`-`X5`, `SVC #0`. w
 
 ## Self hosting
 
-Self hosting means the compiler compiles its own source and produces a binary that can compile that same source again. The output must be bit-identical across generations. That is the only test that cannot be faked and the one this project is working toward.
+Self hosting means the compiler compiles its own source and produces a binary that can compile that same source again, with bit-identical output across generations. That is the only test that cannot be faked, and it now passes: `stage1.out`, `stage2.out` and `stage3.out` share one SHA-256.
 
-The bootstrap is built in three stages inside the [stage1/](stage1/) directory. [lex.x](stage1/lex.x) implements the lexer: a single `lx_one` function that consumes one token at a time from a byte buffer, identifies keywords via `streqn` against null-terminated keyword strings, and returns a 20-byte token allocated from the bump arena. [parse.x](stage1/parse.x) contains the full lexer plus a recursive descent parser that produces a heap-allocated AST. Each node is a fixed 232-byte block with fields for type, a numeric value, a string pointer, three child slots, a variable-length child array capped at 16, and a parameter list capped at 16. No dynamic resizing. 
+```sh
+make selfhost
+```
 
-[codegen.x](stage1/codegen.x) will contain the AArch64 ELF64 emitter written in `x`, at which point the three files are concatenated with their test drivers stripped and a single entry point added at the bottom. The resulting [compiler.x](stage1/compiler.x) is compiled by the C host to produce `stage1/compiler.out`, which then compiles [compiler.x](stage1/compiler.x) itself. That is stage2. If stage2 output matches stage1 output byte for byte, self hosting is complete.
+The compiler is written in `x` and lives in [stage1/](stage1/). [parse.x](stage1/parse.x) holds the lexer (a single `lx_one` that consumes one token at a time from a byte buffer and returns a 20-byte token from the bump arena) and a recursive descent parser producing a heap-allocated AST of fixed 232-byte nodes. [codegen.x](stage1/codegen.x) is a line-for-line port of the C code generator: the same AArch64 encoders, the same push/pop expression scheme, the same lazy value kinds (immediate, register, frame slot, global), the same forward-call patching, the same runtime helpers `__itoa`, `__out`, `__putstr` and the same ELF64 layout. [main.x](stage1/main.x) is the entry point: read source, parse, generate, emit. [lex.x](stage1/lex.x) is a standalone lexer test, since `parse.x` already contains the lexer.
 
-The self-hosting target is not distant. The language has pointers, array indexing, byte access, and a bump allocator. What remains is structs or a workable substitute to express the compiler's own data structures. When that exists, the compiler can be written in itself and the bootstrap chain becomes fully auditable from source to binary.
+The self-hosted compiler is [parse.x](stage1/parse.x) with its test driver and dump helpers stripped (everything from `int nd_type_name` onward), followed by [codegen.x](stage1/codegen.x) and [main.x](stage1/main.x). There is no linker. Concatenation in dependency order is the link step, so the only tool required is `cat`.
 
-There is no linker and none is needed, because `Simplex` has no separate compilation stages. The top level of a source file is sequential: globals and functions declared earlier are visible to everything that follows. Concatenation in dependency order is the link step, so the only tool required is `cat`...
+The bootstrap chain, as executed by `selfhost.sh`:
 
-One constraint shaped the design of all [stage1/](stage1/) code and must be respected in any `Simplex` source: all local variables must be declared at the top of a function before the first `if` or `while`. The frame pointer fix (`MOV SP, X29` before `LDP` in `emit_fn_exit`) is already applied in this port, a return from any function correctly unwinds the frame regardless of where locals were declared.
+1. `simplex2elf` (C) compiles `simplex.x` into `stage1.out`.
+2. `stage1.out` compiles `simplex.x` into `stage2.out`.
+3. `stage2.out` compiles `simplex.x` into `stage3.out`.
+4. `stage1.out`, `stage2.out` and `stage3.out` must be byte identical.
+5. `stage2.out` must also produce the same bytes as `simplex2elf` for every program in `src/`, `stage1/lex.x`, `stage1/parse.x` and `tests/`.
+
+### What had to change in the C compiler and the parser
+
+Four obstacles stood between the language and its own compiler.
+
+- **Heap.** The arena was 64 KB, which holds about 280 AST nodes. `HEAP_SZ` is now 64 MB. `MAX_FNS` was raised from 256 to 1024 and `MAX_FPATCHES` from 4096 to 32768, because the compiler's own source exceeds the old limits. These are the only edits to `simplex2elf.c`, and they change the BSS size recorded in every emitted binary. The same values sit at the top of `codegen.x` (`HEAP_SZ`, `MAX_FNS`, `MAX_FPAT`, `MAX_GLBS`) and must be kept in sync.
+- **Children.** Children were stored in a fixed array inside the node and overran silently past about 49, while the top level of a compiler has hundreds. A node now holds a pointer to a growable array (`p[9]`) and its capacity (`p[10]`); `nd_ch` and `nd_add_ch` are the only functions that changed.
+- **Output.** There is no raw byte output: `putstr` stops at the first NUL and an ELF is full of NULs. The compiler prints the ELF as `\ooo` octal escapes, four characters per byte, and `sx.sh` decodes that with POSIX `printf`.
+- **Input.** `getc` never signals EOF, it keeps returning the last byte read. The compiler reads stdin until a NUL byte, which `sx.sh` appends. Without it the compiler stops with `source too large or missing NUL terminator`.
+
+### Rules the source must obey
+
+These are properties of the language that [codegen.x](stage1/codegen.x) and [main.x](stage1/main.x) were written around.
+
+- A function has at most 16 variables, parameters and locals together. Frame slots are addressed with `stur`/`ldur`, whose offset is 9 bits signed, so slot 17 silently wraps. Neither compiler checks this.
+- Values are unsigned 32 bit. There are no negative comparisons, `/` and `%` are unsigned, and results that go negative stay 64 bit until they are stored.
+- `&&` and `||` are bitwise and do not short circuit, so they are only safe on `0` or `1`.
+- There are no hex literals and no shifts, so instruction words are built with decimal constants and multiplication by powers of two.
+- Locals are declared at the top of a function, before the first `if` or `while`.
+- `bstore` takes `(value, ptr, idx)`.
+- Errors print a message and crash deliberately, because there is no `exit` intrinsic. Output is written only after the whole compile succeeds, so a failed compile leaves no partial ELF.
+
+### Scripts
+
+[sx.sh](sx.sh) runs a Simplex compiler binary on a source file: `./sx.sh compiler src.x out`. It appends the NUL sentinel to the source, pipes it through the compiler into `out.txt`, decodes the escapes into the binary `out` with `printf "$(cat out.txt)"`, and sets the executable bit. The compiler's exit status is checked before decoding, so a crashed compile prints its message and leaves nothing behind. It works with either `stage1.out` or `stage2.out`.
+
+[selfhost.sh](selfhost.sh) builds `simplex2elf` if needed, assembles `simplex.x`, runs the three stages, compares them with `cmp`, prints the hashes, and then checks stage 2 against the C compiler on every program in `src/`, `stage1/lex.x`, `stage1/parse.x` and `tests/`. Anything that is not a regular file is skipped. It exits non zero if any stage or program differs. `make selfhost` runs it and `make clean` removes its products.
+
+### Tests
+
+[tests/](tests/) holds programs written to reach code generator paths the compiler's own source does not use: every operator and precedence, unary minus and `!`, pointers, `&` on locals and globals, index and dereference stores, calls with 0 to 8 arguments, forward and mutual recursion, string escapes (`\n \t \\ \" \0` and unknown escapes), the layout with no read-only segment, large immediates, `getc`/`bstore`/`balloc`, a function with exactly 16 slots, discarded expression statements, comments, an empty program and a top level `return`. The check is byte equality against the C compiler, not just matching output.
 
 ## Status
 
@@ -109,6 +146,11 @@ One constraint shaped the design of all [stage1/](stage1/) code and must be resp
 - [alloc.x](src/alloc.x): bump allocator, 64KB arena in BSS
 - [stage1/lex.x](stage1/lex.x): tokenizer, lx_* stream, strings, numbers, ids, operators
 - [stage1/parse.x](stage1/parse.x): recursive descent parser, ND_* AST, functions and control flow
+- [stage1/codegen.x](stage1/codegen.x): AArch64 code generator and ELF64 emitter in `x`
+- [stage1/main.x](stage1/main.x): self hosted compiler entry point
+- [sx.sh](sx.sh), [selfhost.sh](selfhost.sh): run a compiler binary on a source, run the three stage bootstrap
+- [tests/](tests/): code generator coverage, compared byte for byte with the C compiler
+- [simplex.x](simplex.x): the self hosted compiler, `stage1/parse.x` + `stage1/codegen.x` + `stage1/main.x` concatenated, compiles itself to a byte identical fixpoint
 
 ## License
 
