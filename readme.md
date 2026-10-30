@@ -1,6 +1,6 @@
 # Simplex
 
-Simplex is a compiled systems language for AArch64 Linux. Its compiler reads source code and spits out self contained ELF64 executables directly. The output is correct, position dependent executables for AArch64, and no external dependencies are needed at any stage. The compiler compiles a complete, reproducible version of itself, not only as a demonstration of cleverness but as a proof that the language and its code generator are correct, expressive, and complete enough to be trusted as a system tool. Self compilation is the only test that cannot be faked.
+Simplex is a compiled systems language for AArch64 Linux. Its compiler reads source code and spits out self contained ELF64 executables directly. The output is correct, position dependent executables for AArch64, and no external dependencies are needed at any stage. The compiler compiles a complete, reproducible version of itself, not only as a demonstration of cleverness but as a proof that the language and its code generator are correct, expressive, and complete enough to be trusted as a system tool. Self compilation is the only test that cannot be faked!
 
 ## The language
 
@@ -73,7 +73,7 @@ Conditions are integers, zero is false, anything else is true, exactly as in C. 
 
 [simplex2elf.c](./simplex2elf.c) and [simplex2elf.h](./simplex2elf.h) compiled with any C99 compatible compiler and `make`.
 
-The compiler is a recursive descent parser feeding directly into an AArch64 code emitter. There is no intermediate representation. No AST transformation passes. No optimizations. The parser produces an AST, the code generator walks it once and emits A64 instructions into a buffer, the buffer is written as an ELF64 file. Three segments: text at `0x400000`, read-only data at `0x500000`, BSS at `0x600000`. The entry point is recorded after the runtime helpers are emitted.
+The compiler is a recursive descent parser feeding directly into an AArch64 code emitter. There is no intermediate representation or AST transformation passes. No silly optimizations. The parser produces an AST, the code generator walks it once and emits A64 instructions into a buffer, the buffer is written as an ELF64 file. Three segments: text at `0x400000`, read-only data at `0x500000`, BSS at `0x600000`. The entry point is recorded after the runtime helpers are emitted.
 
 Forward calls including recursion are patched in a single pass at the end of codegen. All calling convention logic lives in three functions: `emit_fn_entry`, `emit_fn_exit`, `emit_call`. They do not duplicate each other.
 
